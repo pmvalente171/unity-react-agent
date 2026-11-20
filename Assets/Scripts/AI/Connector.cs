@@ -1,16 +1,8 @@
-using UnityEngine;
+using GameArchitecture;
 
-public class Connector : MonoBehaviour
+namespace AI
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public class Connector : Singleton<Connector>
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

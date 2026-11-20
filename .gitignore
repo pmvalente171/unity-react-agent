@@ -112,3 +112,10 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Python agent server
+/agent_server/.env
+/agent_server/.venv/
+/agent_server/venv/
+__pycache__/
+*.pyc
