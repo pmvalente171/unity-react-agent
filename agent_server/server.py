@@ -1,151 +1,147 @@
 ﻿"""Stateless ReAct step server.
 
 Unity owns the loop and the history. On every step it POSTs the full history
-plus the tools it can execute; the server asks the LLM for exactly one next
-step and returns either an action (tool call) or a final answer.
+plus the tools it can execute; the server returns exactly one next step.
+See CONTRACT.md for the wire format.
 
-Wire format (provider-agnostic, so Unity never sees OpenAI-specific shapes):
-
-POST /step
-{
-  "system": "optional system prompt override",
-  "tools": [
-    {"name": "move_to", "description": "...", "parameters": {<JSON Schema>}}
-  ],
-  "messages": [
-    {"role": "user", "content": "Go to the kitchen"},
-    {"role": "assistant", "thought": "...", "action": {"id": "call_1", "tool": "move_to", "args": {...}}},
-    {"role": "observation", "action_id": "call_1", "content": "Arrived at kitchen"},
-    {"role": "assistant", "thought": "...", "answer": "..."}
-  ]
-}
-
-Response:
-  {"type": "action", "thought": "...", "action": {"id": "...", "tool": "...", "args": {...}}}
-  {"type": "final",  "thought": "...", "answer": "..."}
+This module only does HTTP: JSON in -> neutral types -> agent.step() -> JSON out.
+Agent logic lives in agent/, provider logic in llm/, models in config/models.yaml.
 """
 
-import json
+from __future__ import annotations
+
 import os
+from pathlib import Path
+from typing import Any
 
 from flask import Flask, jsonify, request
-from openai import OpenAI
 
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
-
-DEFAULT_SYSTEM_PROMPT = (
-    "You are an agent acting inside a game world. Work step by step. "
-    "On every turn, first write a short explanation of your reasoning in plain text "
-    "(this is shown to the player), then either call exactly one tool, or, if the task "
-    "is done, give your final answer as plain text without calling a tool."
+from agent.react_agent import AgentError, ReActAgent
+from core.types import (
+    AssistantMessage,
+    Message,
+    ObservationMessage,
+    ToolCall,
+    ToolSpec,
+    UserMessage,
 )
+from llm.base import ContextTooLongError, LLMError
+from llm.model_card import load_active_card
+from llm.registry import build_llm
 
-app = Flask(__name__)
-client = OpenAI()  # reads OPENAI_API_KEY from the environment
+DEFAULT_CONFIG = Path(__file__).parent / "config" / "models.yaml"
 
 
 class BadRequest(Exception):
     pass
 
 
-def to_openai_tools(tools):
-    out = []
-    for t in tools:
-        if "name" not in t:
-            raise BadRequest("every tool needs a 'name'")
-        out.append({
-            "type": "function",
-            "function": {
-                "name": t["name"],
-                "description": t.get("description", ""),
-                "parameters": t.get("parameters") or {"type": "object", "properties": {}},
-            },
-        })
-    return out
+# ---- JSON -> neutral types ----
+
+def parse_tools(raw: Any) -> list[ToolSpec]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise BadRequest("'tools' must be a list")
+    tools = []
+    for i, t in enumerate(raw):
+        if not isinstance(t, dict) or not isinstance(t.get("name"), str) or not t["name"]:
+            raise BadRequest(f"tools[{i}]: needs a non-empty string 'name'")
+        params = t.get("parameters") or {"type": "object", "properties": {}}
+        if not isinstance(params, dict):
+            raise BadRequest(f"tools[{i}]: 'parameters' must be a JSON Schema object")
+        tools.append(ToolSpec(name=t["name"], description=str(t.get("description", "")), parameters=params))
+    return tools
 
 
-def to_openai_messages(system, messages):
-    out = [{"role": "system", "content": system}]
-    for i, m in enumerate(messages):
+def parse_messages(raw: Any) -> list[Message]:
+    if not isinstance(raw, list) or not raw:
+        raise BadRequest("'messages' must be a non-empty list")
+    out: list[Message] = []
+    for i, m in enumerate(raw):
+        if not isinstance(m, dict):
+            raise BadRequest(f"messages[{i}]: must be an object")
         role = m.get("role")
         if role == "user":
-            out.append({"role": "user", "content": m.get("content", "")})
+            out.append(UserMessage(content=str(m.get("content", ""))))
         elif role == "assistant":
-            msg = {"role": "assistant", "content": m.get("thought") or m.get("answer") or ""}
             action = m.get("action")
-            if action:
-                msg["tool_calls"] = [{
-                    "id": action["id"],
-                    "type": "function",
-                    "function": {
-                        "name": action["tool"],
-                        "arguments": json.dumps(action.get("args") or {}),
-                    },
-                }]
-            elif m.get("thought") and m.get("answer"):
-                msg["content"] = f"{m['thought']}\n\n{m['answer']}"
-            out.append(msg)
+            call = None
+            if action is not None:
+                if not isinstance(action, dict) or not action.get("id") or not action.get("tool"):
+                    raise BadRequest(f"messages[{i}]: 'action' needs 'id' and 'tool'")
+                args = action.get("args") or {}
+                if not isinstance(args, dict):
+                    raise BadRequest(f"messages[{i}]: 'action.args' must be an object")
+                call = ToolCall(id=str(action["id"]), tool=str(action["tool"]), args=args)
+            answer = m.get("answer")
+            out.append(AssistantMessage(
+                thought=str(m.get("thought") or ""),
+                action=call,
+                answer=None if answer is None else str(answer),
+            ))
         elif role == "observation":
-            if "action_id" not in m:
+            if not m.get("action_id"):
                 raise BadRequest(f"messages[{i}]: observation needs 'action_id'")
-            out.append({
-                "role": "tool",
-                "tool_call_id": m["action_id"],
-                "content": str(m.get("content", "")),
-            })
+            is_error = m.get("is_error", False)
+            if not isinstance(is_error, bool):
+                raise BadRequest(f"messages[{i}]: 'is_error' must be true or false")
+            out.append(ObservationMessage(
+                action_id=str(m["action_id"]), content=str(m.get("content", "")), is_error=is_error,
+            ))
         else:
             raise BadRequest(f"messages[{i}]: unknown role {role!r}")
     return out
 
 
-@app.get("/health")
-def health():
-    return jsonify({"status": "ok", "model": MODEL})
+# ---- app ----
+
+def error(status: int, code: str, message: str):
+    return jsonify({"error": message, "code": code}), status
 
 
-@app.post("/step")
-def step():
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return jsonify({"error": "expected a JSON object"}), 400
+def create_app(agent: ReActAgent) -> Flask:
+    app = Flask(__name__)
 
-    messages = body.get("messages")
-    if not isinstance(messages, list) or not messages:
-        return jsonify({"error": "'messages' must be a non-empty list"}), 400
+    @app.get("/health")
+    def health():
+        card = agent.llm.card
+        return jsonify({"status": "ok", "model": card.name, "provider": card.provider})
 
-    try:
-        oa_messages = to_openai_messages(body.get("system") or DEFAULT_SYSTEM_PROMPT, messages)
-        oa_tools = to_openai_tools(body.get("tools") or [])
-    except (BadRequest, KeyError, TypeError) as e:
-        return jsonify({"error": f"bad request: {e}"}), 400
+    @app.post("/step")
+    def step():
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            return error(400, "bad_request", "expected a JSON object")
+        if "system" in body:
+            return error(400, "bad_request", "'system' is not accepted; the system prompt is set on the server")
 
-    kwargs = {"model": MODEL, "messages": oa_messages}
-    if oa_tools:
-        kwargs["tools"] = oa_tools
-        kwargs["parallel_tool_calls"] = False  # one action per ReAct step
-
-    try:
-        completion = client.chat.completions.create(**kwargs)
-    except Exception as e:  # surface provider errors to Unity instead of a bare 500
-        return jsonify({"error": f"LLM call failed: {e}"}), 502
-
-    reply = completion.choices[0].message
-    thought = reply.content or ""
-
-    if reply.tool_calls:
-        call = reply.tool_calls[0]
         try:
-            args = json.loads(call.function.arguments or "{}")
-        except json.JSONDecodeError:
-            args = {"_raw": call.function.arguments}
-        return jsonify({
-            "type": "action",
-            "thought": thought,
-            "action": {"id": call.id, "tool": call.function.name, "args": args},
-        })
+            messages = parse_messages(body.get("messages"))
+            tools = parse_tools(body.get("tools"))
+        except BadRequest as e:
+            return error(400, "bad_request", str(e))
 
-    return jsonify({"type": "final", "thought": "", "answer": thought})
+        try:
+            result = agent.step(messages, tools)
+        except ContextTooLongError as e:
+            return error(413, "context_too_long", f"history does not fit the model's context window: {e}")
+        except LLMError as e:
+            return error(502, "llm_error", f"LLM call failed: {e}")
+        except AgentError as e:
+            return error(502, "agent_error", str(e))
+        except NotImplementedError as e:
+            return error(501, "not_supported", str(e))
+        return jsonify(result.to_dict())
+
+    return app
+
+
+def create_default_app() -> Flask:
+    """App for the active model in the config. gunicorn runs it as 'server:create_default_app()'."""
+    card = load_active_card(os.environ.get("MODEL_CONFIG", DEFAULT_CONFIG))
+    return create_app(ReActAgent(build_llm(card)))
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    create_default_app().run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

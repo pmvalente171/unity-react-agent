@@ -1,0 +1,42 @@
+# Model cards: what each model deployment can do.
+# The server uses the card named by `active`; the ACTIVE_MODEL env var overrides it.
+# Changing models needs a server restart for now.
+#
+# Fields:
+#   provider                 which LLM class to use ("openai" also covers OpenAI-compatible servers)
+#   model_id                 the model name the provider's API expects
+#   base_url                 set for OpenAI-compatible servers (vLLM, Ollama, ...); omit for OpenAI
+#   api_key_env              name of the env var holding the API key (the key itself never goes here)
+#   context_window           max tokens of input (informational for now)
+#   max_output_tokens        max tokens the model can produce (informational for now)
+#   supports_native_tools    false -> the agent must use text-based ReAct (not implemented yet)
+#   supports_parallel_tools  true -> the server explicitly asks for one tool call at a time
+#   supports_system_role     false -> the system prompt is merged into the first user message
+#   emits_reasoning          true -> the model returns hidden reasoning that is never sent back
+
+active: gpt-4.1-mini
+
+models:
+  gpt-4.1-mini:
+    provider: openai
+    model_id: gpt-4.1-mini
+    api_key_env: OPENAI_API_KEY
+    context_window: 1047576
+    max_output_tokens: 32768
+    supports_native_tools: true
+    supports_parallel_tools: true
+    supports_system_role: true
+    emits_reasoning: false
+
+  # Lab Gemma served by vLLM. Fill in the host and served model name before using it.
+  # Set supports_native_tools to true only if vLLM was started with tool calling
+  # enabled (--enable-auto-tool-choice plus a --tool-call-parser).
+  lab-gemma:
+    provider: openai
+    base_url: http://LAB-HOST:8000/v1
+    model_id: SERVED-MODEL-NAME
+    api_key_env: LAB_VLLM_API_KEY
+    supports_native_tools: false
+    supports_parallel_tools: false
+    supports_system_role: false
+    emits_reasoning: false
