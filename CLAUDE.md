@@ -49,9 +49,11 @@ gameplay and UI.
 - HTTP goes through `UnityWebRequest`. For JSON with dictionaries or free-form tool args, use
   Newtonsoft (`com.unity.nuget.newtonsoft-json`), not `JsonUtility`.
 - **Agent pieces** (`Assets/Scripts/AI/`): `Contract/StepContract.cs` mirrors CONTRACT.md;
-  `Connector` does HTTP only; `Agent` runs the loop and raises C# events; tools implement
-  `IAgentTool` and register in a `ToolSet` ScriptableObject, either as one component per
-  tool (`AgentTool<TArgs>`) or several built in code (`DelegateTool<TArgs>`). The agent never
+  `Connector` does HTTP only; `Agent` runs the loop and raises C# events; tools are
+  `IAgentTool`s registered in a `ToolSet` ScriptableObject. **Write tools as methods marked
+  `[AgentTool, Description("...")]`** and call `toolSet.RegisterFrom(this)` / `UnregisterFrom(this)`
+  in OnEnable/OnDisable; name and argument schema come from the method signature (`MethodTool`).
+  Use `DelegateTool<TArgs>` only for nested arguments or runtime-built tools. The agent never
   references tools directly, and UI (`Assets/Scripts/UI/ChatBox`) never references the agent:
   `AgentChatBridge` wires them.
 

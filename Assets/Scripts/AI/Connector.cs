@@ -70,7 +70,19 @@ namespace AI
 
         private async Awaitable<string> Send(string method, string path, string jsonBody, CancellationToken ct)
         {
-            using var request = new UnityWebRequest(baseUrl.TrimEnd('/') + path, method);
+            ct.ThrowIfCancellationRequested(); // Register() would abort before the send even starts
+
+            UnityWebRequest created;
+            try
+            {
+                created = new UnityWebRequest(baseUrl.TrimEnd('/') + path, method);
+            }
+            catch (System.Exception e) when (e is System.ArgumentException or System.UriFormatException)
+            {
+                throw new StepException(0, ErrorCodes.Network, $"Invalid agent server URL '{baseUrl}': {e.Message}");
+            }
+
+            using var request = created;
             request.downloadHandler = new DownloadHandlerBuffer();
             request.timeout = timeoutSeconds;
             if (jsonBody != null)

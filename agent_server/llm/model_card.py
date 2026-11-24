@@ -8,6 +8,7 @@ only supports native tool calls if it was launched with tool calling enabled).
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, fields
 from pathlib import Path
 
@@ -23,8 +24,9 @@ class ModelCard:
     name: str                       # key in models.yaml
     provider: str                   # which LLM class to use, e.g. "openai"
     model_id: str                   # the name the provider's API expects
-    base_url: str | None = None     # set for OpenAI-compatible servers (vLLM, Ollama, ...)
+    base_url: str | None = None     # set for OpenAI-compatible servers (vLLM, Ollama, ...); ${VAR} allowed
     api_key_env: str | None = None  # name of the env var holding the API key
+    headers: dict[str, str] | None = None  # extra HTTP headers; ${VAR} allowed in names and values
     context_window: int | None = None
     max_output_tokens: int | None = None
     supports_native_tools: bool = True
@@ -35,6 +37,34 @@ class ModelCard:
     @property
     def api_key(self) -> str | None:
         return os.environ.get(self.api_key_env) if self.api_key_env else None
+
+    @property
+    def resolved_base_url(self) -> str | None:
+        """`base_url` with ${VAR} references filled in from the environment."""
+        return self._expand(self.base_url, "base_url") if self.base_url else None
+
+    @property
+    def resolved_headers(self) -> dict[str, str]:
+        """`headers` with ${VAR} references filled in, in names as well as values."""
+        return {
+            self._expand(k, "headers"): self._expand(v, "headers")
+            for k, v in (self.headers or {}).items()
+        }
+
+    def _expand(self, text: str, field_name: str) -> str:
+        # Resolved when the model is used, not when the file loads, so a card
+        # whose env vars are missing only fails if it is the active one.
+        def lookup(m: re.Match) -> str:
+            value = os.environ.get(m.group(1))
+            if not value:
+                raise ModelConfigError(
+                    f"model {self.name!r}: env var {m.group(1)} (used in {field_name}) is not set"
+                )
+            return value
+        return _ENV_REF.sub(lookup, text)
+
+
+_ENV_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
 _CARD_FIELDS = {f.name for f in fields(ModelCard)} - {"name"}
@@ -63,6 +93,11 @@ def load_cards(path: str | Path) -> tuple[dict[str, ModelCard], str]:
         missing = {"provider", "model_id"} - set(spec)
         if missing:
             raise ModelConfigError(f"{path}: model {name!r} is missing {sorted(missing)}")
+        headers = spec.get("headers")
+        if headers is not None and not (
+            isinstance(headers, dict) and all(isinstance(v, str) for v in [*headers, *headers.values()])
+        ):
+            raise ModelConfigError(f"{path}: model {name!r}: 'headers' must map strings to strings")
         cards[name] = ModelCard(name=name, **spec)
 
     active = data.get("active")

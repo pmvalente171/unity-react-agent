@@ -20,6 +20,7 @@ session (find it with ListAgents; it runs from the repo root).
 | `llm/openai_llm.py` | OpenAI and any OpenAI-compatible server (vLLM, Ollama) via `base_url`. |
 | `llm/model_card.py` + `config/models.yaml` | What each model deployment can do. `active` picks the model; `ACTIVE_MODEL` env var overrides it. |
 | `llm/registry.py` | Maps a card's `provider` to its LLM class. |
+| `tools/probe_model.py` + `probe_model.sh` | Probe a deployment to fill in its card. |
 
 ## Design rules
 
@@ -33,7 +34,13 @@ session (find it with ListAgents; it runs from the repo root).
 
 - **New provider:** subclass `LLM` in `llm/<name>_llm.py`, translate to/from `core/types`, turn every provider failure into `LLMError` (context overflow into `ContextTooLongError`), and register it.
 - **New model card field:** add it to `ModelCard` *and* to the field comment block at the top of `config/models.yaml`. Unknown fields in the YAML are rejected on purpose.
-- **New model:** add a card in `config/models.yaml`. API keys go in env vars named by `api_key_env`, never in the file.
+- **New model:** add a card in `config/models.yaml`. API keys go in env vars named by `api_key_env`, never in the file. Hosts and headers can use `${VAR}` so lab details stay in `.env`.
+- **Filling in a card's capabilities:** the user runs `./probe_model.sh <card>` (it reads `.env`, which Claude may not read) and pastes the output; it lists the served models and tests system role, native tools and a tool-result round trip.
+
+## Running
+
+`docker compose up --build` starts the server on port 5000 with the env vars from `.env`.
+The active model is `lab-gemma` (the lab's vLLM). The user starts it, since it reads `.env`.
 
 ## Testing
 
@@ -50,5 +57,5 @@ behaviour change gets a test.
 ## Not done yet
 
 - Text-based ReAct fallback for models without native tool calling (currently a 501 `not_supported`).
-- The lab's vLLM Gemma card (`lab-gemma`) still has placeholder host and model name.
+- `lab-gemma`: native tools verified; system role and parallel flag not yet. `lab-ollama`: unprobed, still needs a `model_id`.
 - Changing the model needs a server restart.

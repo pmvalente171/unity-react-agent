@@ -7,10 +7,10 @@ using UnityEngine;
 namespace AI.Tools
 {
     /// <summary>
-    /// Something the agent can do. Not tied to MonoBehaviour: implement it directly,
-    /// inherit <see cref="AgentTool{TArgs}"/> (one tool per component), or build
-    /// <see cref="DelegateTool{TArgs}"/>s in code (many tools per component).
-    /// Make tools available by registering them in a <see cref="ToolSet"/>.
+    /// Something the agent can do. Usually you don't implement this yourself:
+    /// mark methods with <see cref="AgentToolAttribute"/> and call <see cref="ToolSet.RegisterFrom"/>
+    /// (the default), or build <see cref="DelegateTool{TArgs}"/>s for complex arguments.
+    /// Tools are available while registered in a <see cref="ToolSet"/>.
     /// </summary>
     public interface IAgentTool
     {

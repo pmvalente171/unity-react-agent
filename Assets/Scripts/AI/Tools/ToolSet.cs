@@ -14,6 +14,7 @@ namespace AI.Tools
     public class ToolSet : ScriptableObject
     {
         private readonly List<IAgentTool> _tools = new();
+        private readonly Dictionary<object, List<IAgentTool>> _owned = new(); // RegisterFrom owner -> its tools
 
         public event Action Changed;
 
@@ -51,6 +52,34 @@ namespace AI.Tools
             foreach (var tool in tools) Unregister(tool);
         }
 
+        /// <summary>
+        /// Registers every [AgentTool] method on <paramref name="owner"/> (see <see cref="AgentToolAttribute"/>).
+        /// Call from OnEnable and pair with <see cref="UnregisterFrom"/> in OnDisable. Returns how many registered.
+        /// </summary>
+        public int RegisterFrom(object owner)
+        {
+            if (owner == null) return 0;
+            if (_owned.TryGetValue(owner, out var existing)) return existing.Count;
+
+            var registered = new List<IAgentTool>();
+            var tools = MethodTool.CreateAll(owner);
+            foreach (var tool in tools)
+                if (Register(tool)) registered.Add(tool);
+
+            if (tools.Count == 0)
+                Debug.LogWarning($"[ToolSet] {owner.GetType().Name} has no valid [AgentTool] methods.");
+
+            _owned[owner] = registered;
+            return registered.Count;
+        }
+
+        /// <summary>Removes the tools that <see cref="RegisterFrom"/> registered for <paramref name="owner"/>.</summary>
+        public void UnregisterFrom(object owner)
+        {
+            if (owner != null && _owned.Remove(owner, out var tools))
+                UnregisterAll(tools);
+        }
+
         public bool TryGet(string toolName, out IAgentTool tool)
         {
             tool = _tools.Find(t => t.Name == toolName);
@@ -67,6 +96,10 @@ namespace AI.Tools
         }
 
         // Runtime-only: don't carry stale registrations over when the asset is unloaded/reloaded.
-        private void OnDisable() => _tools.Clear();
+        private void OnDisable()
+        {
+            _tools.Clear();
+            _owned.Clear();
+        }
     }
 }

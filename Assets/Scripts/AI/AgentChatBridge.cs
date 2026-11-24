@@ -20,6 +20,13 @@ namespace AI
 
         private void OnEnable()
         {
+            if (agent == null || chatBox == null)
+            {
+                Debug.LogError("[AgentChatBridge] Assign both the Agent and the ChatBox.", this);
+                enabled = false;
+                return;
+            }
+
             chatBox.MessageSubmitted += OnSubmitted;
             agent.ThoughtReceived += OnThought;
             agent.ActionStarted += OnAction;
@@ -32,6 +39,8 @@ namespace AI
 
         private void OnDisable()
         {
+            if (agent == null || chatBox == null) return;
+
             chatBox.MessageSubmitted -= OnSubmitted;
             agent.ThoughtReceived -= OnThought;
             agent.ActionStarted -= OnAction;

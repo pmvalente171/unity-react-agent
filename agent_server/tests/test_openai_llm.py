@@ -82,7 +82,7 @@ def test_bad_json_arguments_are_kept_raw():
 
 
 def test_provider_errors_become_llm_error():
-    err = APIConnectionError(request=SimpleNamespace(method="POST", url="x"))
+    err = APIConnectionError(request=fake_http_request())
     with pytest.raises(LLMError):
         OpenAILLM(CARD, client=FakeClient(error=err)).generate("SYS", HISTORY[:1], TOOLS)
 
@@ -123,7 +123,15 @@ def test_other_bad_requests_stay_llm_error():
     assert not isinstance(info.value, ContextTooLongError)
 
 
+try:  # the HTTP library the OpenAI SDK is built on: httpx2 from SDK 3.x, httpx before
+    import httpx2 as _http
+except ImportError:  # pragma: no cover
+    import httpx as _http
+
+
+def fake_http_request():
+    return _http.Request("POST", "http://x")
+
+
 def fake_http_response(status):
-    return SimpleNamespace(
-        status_code=status, headers={}, request=SimpleNamespace(method="POST", url="http://x")
-    )
+    return _http.Response(status, request=fake_http_request())

@@ -1,0 +1,10 @@
+# Start the server with the env vars from .env (API keys, lab hosts):
+#   docker compose up --build
+# The model comes from config/models.yaml (`active`), or ACTIVE_MODEL in .env.
+services:
+  agent-server:
+    build: .
+    env_file: .env
+    ports:
+      - "5000:5000"
+    restart: unless-stopped

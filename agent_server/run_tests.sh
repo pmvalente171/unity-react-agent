@@ -5,4 +5,4 @@ set -e
 cd "$(dirname "$0")"
 SRC="$(pwd -W 2>/dev/null || pwd)"  # Windows path under Git Bash, POSIX path elsewhere
 MSYS_NO_PATHCONV=1 docker run --rm -v "$SRC:/src:ro" -w /work python:3.12-slim sh -c \
-  "cp -r /src/. /work && pip install -q --root-user-action=ignore -r requirements-dev.txt >/dev/null 2>&1 && python -m pytest -q -p no:cacheprovider tests $*"
+  "tar -C /src --exclude=./.env -cf - . | tar -C /work -xf - && pip install -q --root-user-action=ignore -r requirements-dev.txt >/dev/null 2>&1 && python -m pytest -q -p no:cacheprovider tests $*"

@@ -1,5 +1,5 @@
 flask>=3.0
-openai>=1.40
+openai>=1.40,<4
 gunicorn>=22.0
 pyyaml>=6.0
 jsonschema>=4.20

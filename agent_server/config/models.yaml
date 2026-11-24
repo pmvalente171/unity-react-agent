@@ -7,14 +7,18 @@
 #   model_id                 the model name the provider's API expects
 #   base_url                 set for OpenAI-compatible servers (vLLM, Ollama, ...); omit for OpenAI
 #   api_key_env              name of the env var holding the API key (the key itself never goes here)
+#   headers                  extra HTTP headers sent on every request (name: value)
 #   context_window           max tokens of input (informational for now)
 #   max_output_tokens        max tokens the model can produce (informational for now)
 #   supports_native_tools    false -> the agent must use text-based ReAct (not implemented yet)
 #   supports_parallel_tools  true -> the server explicitly asks for one tool call at a time
 #   supports_system_role     false -> the system prompt is merged into the first user message
 #   emits_reasoning          true -> the model returns hidden reasoning that is never sent back
+#
+# ${VAR} in base_url and in header names or values is replaced with that env var (e.g. from
+# .env), so lab hosts and secrets stay out of git. It is resolved only for the active model.
 
-active: gpt-4.1-mini
+active: lab-gemma
 
 models:
   gpt-4.1-mini:
@@ -28,15 +32,31 @@ models:
     supports_system_role: true
     emits_reasoning: false
 
-  # Lab Gemma served by vLLM. Fill in the host and served model name before using it.
-  # Set supports_native_tools to true only if vLLM was started with tool calling
-  # enabled (--enable-auto-tool-choice plus a --tool-call-parser).
+  # Lab Gemma 4 served by vLLM. Host and key come from .env (VLLM_HOST, VLLM_API_KEY).
+  # Native tool calls verified 2026-11-24 (full action -> observation -> final loop).
+  # Still unverified: system role and parallel flag (`./probe_model.sh lab-gemma`).
+  # supports_system_role stays false: merging the prompt into the first user message
+  # is safe either way.
   lab-gemma:
     provider: openai
-    base_url: http://LAB-HOST:8000/v1
-    model_id: SERVED-MODEL-NAME
-    api_key_env: LAB_VLLM_API_KEY
-    supports_native_tools: false
+    base_url: ${VLLM_HOST}
+    model_id: google/gemma-4-31B-it
+    api_key_env: VLLM_API_KEY
+    supports_native_tools: true
     supports_parallel_tools: false
     supports_system_role: false
+    emits_reasoning: false
+
+  # Lab Ollama, through its OpenAI-compatible API (/v1). Host and the auth header
+  # (both its name and its value) come from .env. Fill in model_id with a model the
+  # server has: `python tools/probe_model.py lab-ollama` lists them.
+  lab-ollama:
+    provider: openai
+    base_url: ${OLLAMA_HOST}/v1
+    model_id: SET-ME
+    headers:
+      ${OLLAMA_HEADER_KEY}: ${OLLAMA_HEADER_VALUE}
+    supports_native_tools: false
+    supports_parallel_tools: false
+    supports_system_role: true
     emits_reasoning: false

@@ -33,8 +33,10 @@ class OpenAILLM(LLM):
         super().__init__(card)
         if client is None:
             # OpenAI-compatible servers often need no key, but the SDK insists on one.
-            api_key = card.api_key or ("not-needed" if card.base_url else None)
-            client = OpenAI(api_key=api_key, base_url=card.base_url)
+            base_url = card.resolved_base_url
+            api_key = card.api_key or ("not-needed" if base_url else None)
+            client = OpenAI(api_key=api_key, base_url=base_url,
+                            default_headers=card.resolved_headers or None)
         self.client = client
 
     def generate(

@@ -6,7 +6,9 @@ using UnityEngine;
 namespace AI.Tools
 {
     /// <summary>
-    /// A tool made from a method, so one component can expose several tools in code:
+    /// A tool built by hand from a delegate. Prefer <see cref="AgentToolAttribute"/>; use this
+    /// for nested argument objects (<typeparamref name="TArgs"/> can be any class) or for
+    /// names/descriptions/schemas decided at runtime:
     /// <code>
     /// _tools = new IAgentTool[] {
     ///     new DelegateTool&lt;MoveArgs&gt;("move_to", "Walk to a place", MoveSchema, MoveTo),

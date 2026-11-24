@@ -105,6 +105,7 @@ namespace AI
             }
             catch (StepException e)
             {
+                Debug.LogWarning($"[Agent] /step failed: HTTP {e.Status}, code '{e.Code}': {e.Message}", this);
                 Failed?.Invoke(e.Message);
             }
             catch (Exception e)
@@ -114,6 +115,11 @@ namespace AI
             }
             finally
             {
+                // A run that stopped before the model answered leaves the user message last. Drop it, or
+                // the next message makes two user turns in a row, which some chat templates (Gemma) reject.
+                if (_history.Count > 0 && _history[_history.Count - 1].Role == Roles.User)
+                    _history.RemoveAt(_history.Count - 1);
+
                 _cts.Dispose();
                 _cts = null;
                 SetState(AgentState.Idle);
