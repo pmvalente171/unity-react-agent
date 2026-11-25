@@ -21,6 +21,13 @@ namespace AI
         [SerializeField, Tooltip("Leave empty to use the ChatBox on this GameObject.")]
         private ChatBox chatBox;
 
+        [SerializeField, Tooltip("Optional name shown on this agent's messages, e.g. when several agents share one chat.")]
+        private string label;
+
+        [SerializeField, Tooltip("Send the player's chat lines and commands to this agent. Turn off for sub-agents, " +
+                                 "which only take tasks from their parent agent.")]
+        private bool listenToPlayer = true;
+
         [SerializeField] private bool showThoughts = true;
         [SerializeField] private bool showToolCalls = true;
 
@@ -36,7 +43,8 @@ namespace AI
                 return;
             }
 
-            chatBox.MessageSubmitted += OnSubmitted;
+            if (listenToPlayer) chatBox.MessageSubmitted += OnSubmitted;
+            agent.MessageSent += OnMessageSent;
             agent.ThoughtReceived += OnThought;
             agent.ActionStarted += OnAction;
             agent.ObservationReceived += OnObservation;
@@ -51,6 +59,7 @@ namespace AI
             if (agent == null || chatBox == null) return;
 
             chatBox.MessageSubmitted -= OnSubmitted;
+            agent.MessageSent -= OnMessageSent;
             agent.ThoughtReceived -= OnThought;
             agent.ActionStarted -= OnAction;
             agent.ObservationReceived -= OnObservation;
@@ -62,6 +71,7 @@ namespace AI
 
         private async void Start()
         {
+            if (!listenToPlayer) return; // the bridge that does listen reports the connection
             try
             {
                 var url = Connector.BaseUrl;
@@ -96,31 +106,34 @@ namespace AI
                 return;
             }
 
-            chatBox.AddMessage(text, "You", "chat-message--user");
             _ = agent.Send(text);
         }
 
+        // Every message given to the agent: the player's chat lines and game events (e.g. new orders).
+        private void OnMessageSent(string text, string sender) =>
+            chatBox.AddMessage(text, sender, "chat-message--user");
+
         private void OnThought(string thought)
         {
-            if (showThoughts) chatBox.AddMessage(thought, "Thought", "chat-message--thought");
+            if (showThoughts) chatBox.AddMessage(thought, Who("Thought"), "chat-message--thought");
         }
 
         private void OnAction(ActionCall action)
         {
             if (showToolCalls)
                 chatBox.AddMessage($"{action.Tool} {action.Args?.ToString(Formatting.None) ?? "{}"}",
-                    "Action", "chat-message--action");
+                    Who("Action"), "chat-message--action");
         }
 
         private void OnObservation(ActionCall action, ToolResult result)
         {
             if (showToolCalls)
-                chatBox.AddMessage(result.Content, result.IsError ? "Observation (failed)" : "Observation",
+                chatBox.AddMessage(result.Content, Who(result.IsError ? "Observation (failed)" : "Observation"),
                     result.IsError ? "chat-message--error" : "chat-message--observation");
         }
 
-        private void OnFinal(string answer) => chatBox.AddMessage(answer, "Agent", "chat-message--agent");
-        private void OnFailed(string error) => chatBox.AddMessage(error, "Error", "chat-message--error");
+        private void OnFinal(string answer) => chatBox.AddMessage(answer, Who("Agent"), "chat-message--agent");
+        private void OnFailed(string error) => chatBox.AddMessage(error, Who("Error"), "chat-message--error");
         private void OnCancelled() => Notice("Stopped.");
 
         private void OnStateChanged(AgentState state) => chatBox.SetStatus(state switch
@@ -131,5 +144,7 @@ namespace AI
         });
 
         private void Notice(string text) => chatBox.AddMessage(text, null, "chat-message--system");
+
+        private string Who(string sender) => string.IsNullOrEmpty(label) ? sender : $"{label} · {sender}";
     }
 }

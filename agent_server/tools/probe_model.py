@@ -25,7 +25,8 @@ TOOLS = [{"type": "function", "function": {
     "parameters": {"type": "object", "properties": {"place": {"type": "string"}}, "required": ["place"]},
 }}]
 ASK = [
-    {"role": "system", "content": "You are an agent in a game. Explain your reasoning briefly, then call exactly one tool."},
+    {"role": "system",
+     "content": "You are an agent in a game. Explain your reasoning briefly, then call exactly one tool."},
     {"role": "user", "content": "Go to the kitchen."},
 ]
 
@@ -78,7 +79,7 @@ def main(card_name: str) -> None:
     print("\nHow to read this for the card:")
     print("  system message: replied in French -> supports_system_role: true")
     print("  native tools: tool_calls not empty -> supports_native_tools: true")
-    print("  parallel flag: ok -> supports_parallel_tools may be true; FAILED -> false")
+    print("  parallel flag: ok -> can_disable_parallel_tools may be true; FAILED -> false")
     print("  extra_fields such as reasoning_content -> emits_reasoning: true")
 
 

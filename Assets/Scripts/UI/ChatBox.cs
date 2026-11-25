@@ -77,12 +77,6 @@ namespace UI
             _status.style.display = string.IsNullOrEmpty(text) ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
-        public void SetInputEnabled(bool inputEnabled)
-        {
-            _input.SetEnabled(inputEnabled);
-            _send.SetEnabled(inputEnabled);
-        }
-
         public void Clear() => _messages.Clear();
 
         private void Submit()

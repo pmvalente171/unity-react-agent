@@ -1,0 +1,8 @@
+# Direct dependencies with the version ranges the code supports.
+# requirements.txt pins these and everything they pull in; regenerate it after
+# changing this file (see README.md, "Updating dependencies").
+flask>=3.0
+openai>=1.40,<4
+gunicorn>=22.0
+pyyaml>=6.0
+jsonschema>=4.20

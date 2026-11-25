@@ -34,6 +34,7 @@ session (find it with ListAgents; it runs from the repo root).
 
 - **New provider:** subclass `LLM` in `llm/<name>_llm.py`, translate to/from `core/types`, turn every provider failure into `LLMError` (context overflow into `ContextTooLongError`), and register it.
 - **New model card field:** add it to `ModelCard` *and* to the field comment block at the top of `config/models.yaml`. Unknown fields in the YAML are rejected on purpose.
+- **New dependency:** add it to `requirements.in`, then regenerate the pins in `requirements.txt` (command in `README.md`).
 - **New model:** add a card in `config/models.yaml`. API keys go in env vars named by `api_key_env`, never in the file. Hosts and headers can use `${VAR}` so private hosts and secrets stay in `.env`.
 - **Filling in a card's capabilities:** the user runs `./probe_model.sh <card>` (it reads `.env`, which Claude may not read) and pastes the output; it lists the served models and tests system role, native tools and a tool-result round trip.
 
@@ -47,10 +48,11 @@ The active model is `gemma` (Gemma 4 on vLLM). The user starts it, since it read
 Python isn't installed on the dev machine, so tests run in Docker (Docker Desktop must be running):
 
 ```sh
-./run_tests.sh            # whole suite
+./run_tests.sh            # ruff (config in ruff.toml), then the whole suite
 ./run_tests.sh -k agent   # extra args go to pytest
 ```
 
+CI (`.github/workflows/agent-server.yml` at the repo root) runs the same checks.
 Tests use `FakeLLM` (`tests/conftest.py`) or a fake OpenAI client, never real API calls. Every
 behaviour change gets a test.
 

@@ -123,7 +123,7 @@ def test_missing_env_ref_fails_only_when_used(monkeypatch):
     monkeypatch.delenv("NOPE_HOST", raising=False)
     card = ModelCard(name="custom", provider="openai", model_id="m", base_url="${NOPE_HOST}/v1")
     with pytest.raises(ModelConfigError, match="NOPE_HOST"):
-        card.resolved_base_url
+        _ = card.resolved_base_url
 
 
 def test_shipped_config_loads_without_private_env_vars(monkeypatch):
@@ -138,3 +138,39 @@ def test_config_rejects_non_string_headers(tmp_path: Path):
     p.write_text("active: a\nmodels:\n  a: {provider: openai, model_id: x, headers: {X-N: 5}}\n")
     with pytest.raises(ModelConfigError, match="headers"):
         load_cards(p)
+
+
+@pytest.mark.parametrize("tools, problem", [
+    ([{"name": "move_to"}, {"name": "move_to"}], "duplicate"),
+    ([{"name": "move_to", "parameters": {"type": "nonsense"}}], "not a valid JSON Schema"),
+])
+def test_bad_tools_are_rejected(client_for, tools, problem):
+    r = client_for().post("/step", json={**REQUEST, "tools": tools})
+    assert r.status_code == 400 and problem in r.get_json()["error"]
+
+
+@pytest.mark.parametrize("assistant", [
+    {"role": "assistant", "thought": "", "action": {"id": "c1", "tool": "move_to"}, "answer": "done"},
+    {"role": "assistant", "thought": "just thinking"},
+])
+def test_assistant_needs_exactly_one_of_action_or_answer(client_for, assistant):
+    history = REQUEST["messages"] + [assistant]
+    r = client_for().post("/step", json={**REQUEST, "messages": history})
+    assert r.status_code == 400 and "exactly one" in r.get_json()["error"]
+
+
+def test_null_fields_count_as_absent(client_for):
+    # Unity may send unused fields as null; that's still a valid final step.
+    history = REQUEST["messages"] + [
+        {"role": "assistant", "thought": "", "action": None, "answer": "I'm there."},
+        {"role": "user", "content": "Now go to the hall"},
+    ]
+    c = client_for("On my way.")
+    assert c.post("/step", json={**REQUEST, "messages": history}).status_code == 200
+
+
+def test_step_is_logged(client_for, caplog):
+    c = client_for(LLMResponse(text="Going.", tool_calls=[ToolCall("c1", "move_to", {})]))
+    with caplog.at_level("INFO", logger="agent_server"):
+        c.post("/step", json=REQUEST)
+    assert "step action move_to" in caplog.text

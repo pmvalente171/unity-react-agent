@@ -45,6 +45,33 @@ gameplay and UI.
     `EventListener`, `Scriptable*` variables), `Store`. Check here before writing a new helper,
     and put new generic helpers here.
   - `Gameplay/`: game-specific code.
+- Demos live in `Assets/Demo/<DemoName>/` (namespace `Demo.<DemoName>`): the scene, `Scripts/`, and
+  `Generated/` (the demo's ToolSets, materials and NavMesh). The scenes are the source of truth now (the
+  scene-builder menus were removed); change them in the Editor and describe the steps. Code used by more
+  than one demo goes in `Assets/Demo/Shared/` (namespace `Demo.Shared`): `DemoCharacter` (NavMesh walking,
+  speech) and `WorldOverlay` (labels that follow objects).
+  - `CharacterDemo`: a capsule the agent walks around four rooms (`look_around`, `move_to`, `say`).
+  - `KitchenDemo`: a cooking game. Stations (`Station` subclasses) register themselves; `Hands` holds
+    one item; `KitchenTools` tools walk to their station by themselves (one agent step = one kitchen
+    action). Recipes are data in `Food.cs`. `KitchenDirector` runs the restaurant: it spawns timed
+    orders, scores served dishes (the `ServingHatch.Validate` hook refuses dishes nobody ordered), and
+    drives the agent: one `agent.Send(prompt, "Kitchen")` per order whenever the agent is idle. The
+    agent is driven by game events, not the chat. Planned: pausing game time while the agent is thinking.
+  - `CoopKitchenDemo`: multi-agent. Two cooks (`PrepCook`, `LineCook`, both `CoopCook`), each with its own
+    `Agent` and `ToolSet`, work in separate zones and share a middle zone: a `PassCounter` for handing food
+    over and a `PlanBoard` for notes (`post_note`, `wait_for_partner`). A cook reaches only the stations under
+    its zone's and the middle zone's transforms. `CoopDirector` sends each idle cook its role plus the orders.
+    It reuses KitchenDemo's food and stations unchanged (namespace `Demo.KitchenDemo`); leave KitchenDemo as is.
+  - `CheckersDemo`: the player (Black, clicks) against an AI agent (White). Rules are plain data in
+    `CheckersRules.cs` (`Board` generates legal moves; the agent only picks from them). Sub-agents: White's
+    `consult_planner` is a `SubAgentTool` (`Assets/Scripts/AI/Tools/`) wrapping a second `Agent`, the planner,
+    whose own `ToolSet` only has `simulate` (plays moves on a copy of the board). A sub-agent's chat bridge
+    sets `listenToPlayer` off so only its parent gives it tasks.
+  - `ChessDemo`: same setup as `CheckersDemo` (player White, AI Black, planner sub-agent with `simulate`).
+    Rules in `ChessRules.cs` (`ChessBoard`, moves as "e2e4"/"e7e8q"; no repetition/50-move draws). Pieces use
+    the meshes in `Meshes/chesssetcycles.blend` (children named Pawn ... King; importing it needs Blender).
+- `Agent.Send(text, sender)` raises `MessageSent(text, sender)`; the chat shows every message given to
+  the agent (the player's, and game-driven ones like orders) through that event.
 - Prefer the existing ScriptableObject event pattern (`GameEvent` / `EventListener`) for
   connecting systems, e.g. letting UI react to agent steps, over direct references.
 - `Singleton<T>` is scene-placed (not created on demand). Subclasses overriding
