@@ -24,6 +24,10 @@ namespace AI
         [SerializeField, Tooltip("Optional name shown on this agent's messages, e.g. when several agents share one chat.")]
         private string label;
 
+        [SerializeField, Tooltip("Send the player's chat lines and commands to this agent. Turn off for sub-agents, " +
+                                 "which only take tasks from their parent agent.")]
+        private bool listenToPlayer = true;
+
         [SerializeField] private bool showThoughts = true;
         [SerializeField] private bool showToolCalls = true;
 
@@ -39,7 +43,7 @@ namespace AI
                 return;
             }
 
-            chatBox.MessageSubmitted += OnSubmitted;
+            if (listenToPlayer) chatBox.MessageSubmitted += OnSubmitted;
             agent.MessageSent += OnMessageSent;
             agent.ThoughtReceived += OnThought;
             agent.ActionStarted += OnAction;
@@ -67,6 +71,7 @@ namespace AI
 
         private async void Start()
         {
+            if (!listenToPlayer) return; // the bridge that does listen reports the connection
             try
             {
                 var url = Connector.BaseUrl;
