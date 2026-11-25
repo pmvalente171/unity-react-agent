@@ -112,3 +112,14 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Python agent server
+/agent_server/.env
+/agent_server/.venv/
+/agent_server/venv/
+__pycache__/
+*.pyc
+
+# Local agent server settings (may contain a private host); see AI/AgentServerSettings.cs
+/[Aa]ssets/[Rr]esources/AgentServerSettings.asset
+/[Aa]ssets/[Rr]esources/AgentServerSettings.asset.meta
