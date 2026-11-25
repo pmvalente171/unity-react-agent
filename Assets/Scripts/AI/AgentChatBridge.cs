@@ -9,20 +9,29 @@ namespace AI
 {
     /// <summary>
     /// Wires an <see cref="Agent"/> to a <see cref="ChatBox"/>; neither knows about the other.
+    /// Put it next to the ChatBox. Empty fields are filled automatically: the ChatBox on this
+    /// GameObject, and the only Agent in the scene (assign it when there are several).
     /// Chat commands: "/stop" cancels the current run, "/reset" clears the conversation.
     /// </summary>
     public class AgentChatBridge : MonoBehaviour
     {
-        [SerializeField] private Agent agent;
-        [SerializeField] private ChatBox chatBox;
+        [SerializeField, Tooltip("Leave empty to use the only Agent in the scene.")]
+        private Agent agent;
+
+        [SerializeField, Tooltip("Leave empty to use the ChatBox on this GameObject.")]
+        private ChatBox chatBox;
+
         [SerializeField] private bool showThoughts = true;
         [SerializeField] private bool showToolCalls = true;
 
         private void OnEnable()
         {
+            if (chatBox == null) chatBox = GetComponent<ChatBox>();
+            if (agent == null) agent = FindAnyObjectByType<Agent>();
+
             if (agent == null || chatBox == null)
             {
-                Debug.LogError("[AgentChatBridge] Assign both the Agent and the ChatBox.", this);
+                Debug.LogError("[AgentChatBridge] No Agent in the scene or no ChatBox on this GameObject; assign them.", this);
                 enabled = false;
                 return;
             }
@@ -55,9 +64,8 @@ namespace AI
         {
             try
             {
-                if (!Connector.HasInstance) return; // Agent reports this on first send
-                var url = Connector.Instance.BaseUrl;
-                var healthy = await Connector.Instance.IsHealthy(destroyCancellationToken);
+                var url = Connector.BaseUrl;
+                var healthy = await Connector.IsHealthy(destroyCancellationToken);
                 Notice(healthy ? $"Connected to {url}." : $"Agent server not reachable at {url}.");
             }
             catch (OperationCanceledException)

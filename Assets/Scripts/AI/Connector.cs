@@ -1,7 +1,6 @@
 using System.Text;
 using System.Threading;
 using AI.Contract;
-using GameArchitecture;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -11,27 +10,39 @@ namespace AI
     /// <summary>
     /// HTTP client for the agent server. Only knows the wire format (AI.Contract),
     /// nothing about the loop or tools. Every failure becomes a <see cref="StepException"/>.
+    /// Plain static class: nothing to put in the scene. The server address comes from an optional
+    /// <see cref="AgentServerSettings"/> asset in Resources, otherwise <see cref="DefaultBaseUrl"/>.
     /// </summary>
-    public class Connector : Singleton<Connector>
+    public static class Connector
     {
-        [SerializeField] private string baseUrl = "http://localhost:5000";
-
-        [SerializeField, Min(1), Tooltip("The server waits up to 120 s for the model, so keep this above that.")]
-        private int timeoutSeconds = 130;
+        public const string SettingsResourcePath = "AgentServerSettings";
+        public const string DefaultBaseUrl = "http://localhost:5000";
+        public const int DefaultTimeoutSeconds = 130;
 
         private static readonly JsonSerializerSettings JsonSettings = new()
         {
             NullValueHandling = NullValueHandling.Ignore,
         };
 
-        public string BaseUrl
+        private static bool _loaded;
+        private static string _baseUrl;
+        private static int _timeoutSeconds;
+
+        /// <summary>Server address. Set it from code to override the settings asset for this session.</summary>
+        public static string BaseUrl
         {
-            get => baseUrl;
-            set => baseUrl = value;
+            get { EnsureLoaded(); return _baseUrl; }
+            set { EnsureLoaded(); _baseUrl = value; }
+        }
+
+        public static int TimeoutSeconds
+        {
+            get { EnsureLoaded(); return _timeoutSeconds; }
+            set { EnsureLoaded(); _timeoutSeconds = Mathf.Max(1, value); }
         }
 
         /// <summary>POST /step: ask for the next ReAct step.</summary>
-        public async Awaitable<StepResponse> Step(StepRequest request, CancellationToken ct = default)
+        public static async Awaitable<StepResponse> Step(StepRequest request, CancellationToken ct = default)
         {
             var body = JsonConvert.SerializeObject(request, JsonSettings);
             var text = await Send("POST", "/step", body, ct);
@@ -55,7 +66,7 @@ namespace AI
         }
 
         /// <summary>GET /health: true when the server answers.</summary>
-        public async Awaitable<bool> IsHealthy(CancellationToken ct = default)
+        public static async Awaitable<bool> IsHealthy(CancellationToken ct = default)
         {
             try
             {
@@ -68,10 +79,11 @@ namespace AI
             }
         }
 
-        private async Awaitable<string> Send(string method, string path, string jsonBody, CancellationToken ct)
+        private static async Awaitable<string> Send(string method, string path, string jsonBody, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested(); // Register() would abort before the send even starts
 
+            var baseUrl = BaseUrl;
             UnityWebRequest created;
             try
             {
@@ -84,7 +96,7 @@ namespace AI
 
             using var request = created;
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.timeout = timeoutSeconds;
+            request.timeout = TimeoutSeconds;
             if (jsonBody != null)
             {
                 request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
@@ -112,5 +124,19 @@ namespace AI
 
             throw new StepException(0, ErrorCodes.Network, $"Can't reach the agent server at {baseUrl}: {request.error}");
         }
+
+        private static void EnsureLoaded()
+        {
+            if (_loaded) return;
+            _loaded = true;
+
+            var settings = Resources.Load<AgentServerSettings>(SettingsResourcePath);
+            _baseUrl = settings != null ? settings.BaseUrl : DefaultBaseUrl;
+            _timeoutSeconds = settings != null ? settings.TimeoutSeconds : DefaultTimeoutSeconds;
+        }
+
+        // Re-read the settings each Play session, also with domain reload turned off.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => _loaded = false;
     }
 }

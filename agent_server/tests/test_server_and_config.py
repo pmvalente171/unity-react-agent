@@ -60,15 +60,15 @@ def test_health_reports_model(client_for):
 def test_shipped_config_loads_and_builds(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     cards, active = load_cards(server.DEFAULT_CONFIG)
-    assert active == "lab-gemma" and "gpt-4.1-mini" in cards
-    monkeypatch.setenv("VLLM_HOST", "https://lab.example/v1")
+    assert active == "gemma" and "gpt-4.1-mini" in cards
+    monkeypatch.setenv("VLLM_HOST", "https://host.example/v1")
     assert build_llm(cards[active]).card.model_id == "google/gemma-4-31B-it"
     assert build_llm(cards["gpt-4.1-mini"]).card.model_id == "gpt-4.1-mini"
 
 
 def test_active_model_env_override(monkeypatch):
-    monkeypatch.setenv("ACTIVE_MODEL", "lab-gemma")
-    assert load_active_card(server.DEFAULT_CONFIG).name == "lab-gemma"
+    monkeypatch.setenv("ACTIVE_MODEL", "gemma")
+    assert load_active_card(server.DEFAULT_CONFIG).name == "gemma"
     monkeypatch.setenv("ACTIVE_MODEL", "nope")
     with pytest.raises(ModelConfigError):
         load_active_card(server.DEFAULT_CONFIG)
@@ -104,33 +104,33 @@ def test_is_error_observation_accepted_and_validated(fake_llm_factory):
 def test_env_refs_in_base_url_and_headers(monkeypatch):
     from llm.model_card import ModelCard
 
-    card = ModelCard(name="lab", provider="openai", model_id="m",
-                     base_url="${LAB_HOST}/v1", headers={"${HDR_NAME}": "${HDR_VALUE}", "X-Fixed": "1"})
-    monkeypatch.setenv("LAB_HOST", "https://lab.example/ollama")
-    monkeypatch.setenv("HDR_NAME", "X-Lab-Auth")
+    card = ModelCard(name="custom", provider="openai", model_id="m",
+                     base_url="${MY_HOST}/v1", headers={"${HDR_NAME}": "${HDR_VALUE}", "X-Fixed": "1"})
+    monkeypatch.setenv("MY_HOST", "https://host.example/ollama")
+    monkeypatch.setenv("HDR_NAME", "X-Auth")
     monkeypatch.setenv("HDR_VALUE", "s3cret")
-    assert card.resolved_base_url == "https://lab.example/ollama/v1"
-    assert card.resolved_headers == {"X-Lab-Auth": "s3cret", "X-Fixed": "1"}
+    assert card.resolved_base_url == "https://host.example/ollama/v1"
+    assert card.resolved_headers == {"X-Auth": "s3cret", "X-Fixed": "1"}
 
     client = build_llm(card).client
-    assert str(client.base_url).startswith("https://lab.example/ollama/v1")
-    assert client.default_headers["X-Lab-Auth"] == "s3cret"
+    assert str(client.base_url).startswith("https://host.example/ollama/v1")
+    assert client.default_headers["X-Auth"] == "s3cret"
 
 
 def test_missing_env_ref_fails_only_when_used(monkeypatch):
     from llm.model_card import ModelCard
 
     monkeypatch.delenv("NOPE_HOST", raising=False)
-    card = ModelCard(name="lab", provider="openai", model_id="m", base_url="${NOPE_HOST}/v1")
+    card = ModelCard(name="custom", provider="openai", model_id="m", base_url="${NOPE_HOST}/v1")
     with pytest.raises(ModelConfigError, match="NOPE_HOST"):
         card.resolved_base_url
 
 
-def test_shipped_config_loads_without_lab_env_vars(monkeypatch):
+def test_shipped_config_loads_without_private_env_vars(monkeypatch):
     for var in ("VLLM_HOST", "OLLAMA_HOST", "OLLAMA_HEADER_KEY", "OLLAMA_HEADER_VALUE"):
         monkeypatch.delenv(var, raising=False)
-    cards, _ = load_cards(server.DEFAULT_CONFIG)  # lab cards don't break the default model
-    assert cards["lab-ollama"].headers == {"${OLLAMA_HEADER_KEY}": "${OLLAMA_HEADER_VALUE}"}
+    cards, _ = load_cards(server.DEFAULT_CONFIG)  # cards needing env vars don't break the others
+    assert cards["ollama"].headers == {"${OLLAMA_HEADER_KEY}": "${OLLAMA_HEADER_VALUE}"}
 
 
 def test_config_rejects_non_string_headers(tmp_path: Path):

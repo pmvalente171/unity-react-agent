@@ -1,6 +1,6 @@
 """Check what a model deployment supports, to fill in its model card.
 
-Usage: python tools/probe_model.py <card name>     (e.g. lab-gemma, lab-ollama)
+Usage: python tools/probe_model.py <card name>     (e.g. gemma, ollama)
 Or, with no local Python:  ./probe_model.sh <card name>
 
 It connects exactly as the server would (same card, same env vars), lists the

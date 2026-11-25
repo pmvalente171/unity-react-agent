@@ -1,6 +1,6 @@
 #!/bin/sh
 # Probe a model deployment in a throwaway container, using the env vars in .env.
-# Usage: ./probe_model.sh <card name>, e.g. ./probe_model.sh lab-gemma
+# Usage: ./probe_model.sh <card name>, e.g. ./probe_model.sh gemma
 # Run this yourself: it reads .env, which Claude Code is not allowed to read.
 set -e
 cd "$(dirname "$0")"

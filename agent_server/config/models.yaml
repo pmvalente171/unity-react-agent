@@ -16,9 +16,9 @@
 #   emits_reasoning          true -> the model returns hidden reasoning that is never sent back
 #
 # ${VAR} in base_url and in header names or values is replaced with that env var (e.g. from
-# .env), so lab hosts and secrets stay out of git. It is resolved only for the active model.
+# .env), so private hosts and secrets stay out of git. It is resolved only for the active model.
 
-active: lab-gemma
+active: gemma
 
 models:
   gpt-4.1-mini:
@@ -32,12 +32,12 @@ models:
     supports_system_role: true
     emits_reasoning: false
 
-  # Lab Gemma 4 served by vLLM. Host and key come from .env (VLLM_HOST, VLLM_API_KEY).
+  # Gemma 4 served by vLLM. Host and key come from .env (VLLM_HOST, VLLM_API_KEY).
   # Native tool calls verified 2026-11-24 (full action -> observation -> final loop).
-  # Still unverified: system role and parallel flag (`./probe_model.sh lab-gemma`).
+  # Still unverified: system role and parallel flag (`./probe_model.sh gemma`).
   # supports_system_role stays false: merging the prompt into the first user message
   # is safe either way.
-  lab-gemma:
+  gemma:
     provider: openai
     base_url: ${VLLM_HOST}
     model_id: google/gemma-4-31B-it
@@ -47,10 +47,10 @@ models:
     supports_system_role: false
     emits_reasoning: false
 
-  # Lab Ollama, through its OpenAI-compatible API (/v1). Host and the auth header
+  # Ollama, through its OpenAI-compatible API (/v1). Host and the auth header
   # (both its name and its value) come from .env. Fill in model_id with a model the
-  # server has: `python tools/probe_model.py lab-ollama` lists them.
-  lab-ollama:
+  # server has: `python tools/probe_model.py ollama` lists them.
+  ollama:
     provider: openai
     base_url: ${OLLAMA_HOST}/v1
     model_id: SET-ME

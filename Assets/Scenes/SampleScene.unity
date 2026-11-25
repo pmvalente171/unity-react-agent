@@ -526,7 +526,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1126390388}
-  - component: {fileID: 1126390387}
   - component: {fileID: 1126390386}
   - component: {fileID: 1126390385}
   m_Layer: 0
@@ -563,21 +562,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AI.Agent
   toolSet: {fileID: 11400000, guid: 59d7f2ee51a626e4e91f099061104f19, type: 2}
   maxSteps: 10
---- !u!114 &1126390387
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1126390384}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f4ea591984526d4ea8f38ba7c427ec8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AI.Connector
-  persistAcrossScenes: 0
-  baseUrl: http://localhost:5000
-  timeoutSeconds: 130
 --- !u!4 &1126390388
 Transform:
   m_ObjectHideFlags: 0

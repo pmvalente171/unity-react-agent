@@ -49,12 +49,6 @@ namespace AI
                 return;
             }
 
-            if (!Connector.HasInstance)
-            {
-                Failed?.Invoke("No Connector in the scene.");
-                return;
-            }
-
             _history.Add(Message.User(userMessage));
             _cts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             var ct = _cts.Token;
@@ -149,7 +143,7 @@ namespace AI
 
                 try
                 {
-                    return await Connector.Instance.Step(request, ct);
+                    return await Connector.Step(request, ct);
                 }
                 catch (StepException e) when (e.Code == ErrorCodes.ContextTooLong && TrimOldestTurn())
                 {

@@ -1,4 +1,4 @@
-# Start the server with the env vars from .env (API keys, lab hosts):
+# Start the server with the env vars from .env (API keys, private hosts):
 #   docker compose up --build
 # The model comes from config/models.yaml (`active`), or ACTIVE_MODEL in .env.
 services:

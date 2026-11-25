@@ -35,7 +35,9 @@ gameplay and UI.
 
 - Unity **6000.3** (Unity 6), URP, Input System, UI Toolkit.
 - Scripts live in `Assets/Scripts/`:
-  - `AI/`: namespace `AI`. `Connector` (a `Singleton<Connector>`) talks to the backend.
+  - `AI/`: namespace `AI`. `Connector` (a static class, no scene object) talks to the backend;
+    its address comes from an optional `AgentServerSettings` asset in `Resources/`
+    (default `http://localhost:5000`).
   - `GameArchitecture/`: namespace `GameArchitecture`. Reusable building blocks: `Singleton<T>`,
     `Optional<T>`, `CoroutineHandle`, `ObjectPool`, ScriptableObject patterns (`GameEvent`,
     `EventListener`, `Scriptable*` variables), `Store`. Check here before writing a new helper,
@@ -55,7 +57,8 @@ gameplay and UI.
   in OnEnable/OnDisable; name and argument schema come from the method signature (`MethodTool`).
   Use `DelegateTool<TArgs>` only for nested arguments or runtime-built tools. The agent never
   references tools directly, and UI (`Assets/Scripts/UI/ChatBox`) never references the agent:
-  `AgentChatBridge` wires them.
+  `AgentChatBridge` wires them. Keep the `ToolSet` an explicit Inspector reference (one per
+  agent, for multi-agent setups); elsewhere prefer defaults/auto-lookup over required wiring.
 
 ## Rules
 
