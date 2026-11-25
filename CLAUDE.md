@@ -45,11 +45,11 @@ gameplay and UI.
     `EventListener`, `Scriptable*` variables), `Store`. Check here before writing a new helper,
     and put new generic helpers here.
   - `Gameplay/`: game-specific code.
-- Demos live in `Assets/Demo/<DemoName>/` (namespace `Demo.<DemoName>`): `Scripts/`, `Editor/`
-  (a scene-builder menu under **Tools → AI**), and `Generated/` assets the builder writes.
-  Rebuild demo scenes with their menu rather than hand-editing them. Code used by more than one
-  demo goes in `Assets/Demo/Shared/` (namespace `Demo.Shared`): `DemoCharacter` (NavMesh walking,
-  speech), `WorldOverlay` (labels that follow objects) and `Editor/DemoBuilder` (scene-builder helpers).
+- Demos live in `Assets/Demo/<DemoName>/` (namespace `Demo.<DemoName>`): the scene, `Scripts/`, and
+  `Generated/` (the demo's ToolSets, materials and NavMesh). The scenes are the source of truth now (the
+  scene-builder menus were removed); change them in the Editor and describe the steps. Code used by more
+  than one demo goes in `Assets/Demo/Shared/` (namespace `Demo.Shared`): `DemoCharacter` (NavMesh walking,
+  speech) and `WorldOverlay` (labels that follow objects).
   - `CharacterDemo`: a capsule the agent walks around four rooms (`look_around`, `move_to`, `say`).
   - `KitchenDemo`: a cooking game. Stations (`Station` subclasses) register themselves; `Hands` holds
     one item; `KitchenTools` tools walk to their station by themselves (one agent step = one kitchen

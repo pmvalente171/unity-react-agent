@@ -19,6 +19,7 @@ namespace AI.Tools
         private readonly Agent _agent;
         private readonly string _instructions;
         private readonly string _sender;
+        private readonly bool _freshEachCall;
 
         public string Name { get; }
         public string Description { get; }
@@ -37,10 +38,8 @@ namespace AI.Tools
             _agent = agent;
             _instructions = instructions;
             _sender = sender;
-            FreshEachCall = freshEachCall;
+            _freshEachCall = freshEachCall;
         }
-
-        public bool FreshEachCall { get; set; }
 
         public async Awaitable<ToolResult> Execute(JObject args, CancellationToken ct)
         {
@@ -57,7 +56,7 @@ namespace AI.Tools
             _agent.Failed += OnFailed;
             try
             {
-                if (FreshEachCall) _agent.ResetConversation();
+                if (_freshEachCall) _agent.ResetConversation();
                 using (ct.Register(_agent.Cancel)) // stopping the caller stops the sub-agent
                     await _agent.Send(string.IsNullOrEmpty(_instructions) ? task : $"{_instructions}\n\nTask: {task}", _sender);
             }

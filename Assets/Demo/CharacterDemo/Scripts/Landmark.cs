@@ -23,7 +23,6 @@ namespace Demo.CharacterDemo
 
         public string PlaceName => string.IsNullOrWhiteSpace(placeName) ? gameObject.name : placeName.Trim();
         public string Description => description;
-        public float Radius => radius;
 
         /// <summary>Is <paramref name="position"/> inside this place (ignoring height)?</summary>
         public bool Contains(Vector3 position) => FlatDistance(position) <= radius;

@@ -27,8 +27,6 @@ namespace Demo.Shared
         private Label _bubble;
         private float _bubbleHideAt;
 
-        public bool IsMoving => _nav.hasPath || _nav.pathPending;
-
         private void Awake() => _nav = GetComponent<NavMeshAgent>();
 
         /// <summary>Walks to the closest NavMesh point to <paramref name="destination"/>. Cancelling stops on the spot.</summary>
