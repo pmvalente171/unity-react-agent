@@ -45,6 +45,11 @@ gameplay and UI.
     `EventListener`, `Scriptable*` variables), `Store`. Check here before writing a new helper,
     and put new generic helpers here.
   - `Gameplay/`: game-specific code.
+- Demos live in `Assets/Demo/<DemoName>/` (namespace `Demo.<DemoName>`), self-contained:
+  `Scripts/`, `Editor/` (a scene-builder menu under **Tools → AI**), and `Generated/` assets the
+  builder writes. `CharacterDemo`: a capsule the agent walks around four rooms on a NavMesh
+  (`look_around`, `move_to`, `say`). Rebuild its scene with **Tools → AI → Build Character Demo**
+  rather than hand-editing it.
 - Prefer the existing ScriptableObject event pattern (`GameEvent` / `EventListener`) for
   connecting systems, e.g. letting UI react to agent steps, over direct references.
 - `Singleton<T>` is scene-placed (not created on demand). Subclasses overriding
