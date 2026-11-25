@@ -140,8 +140,8 @@ namespace Demo.Shared.Editor
             AssetDatabase.CreateAsset(surface.navMeshData, assetPath);
         }
 
-        /// <summary>World-space labels overlay plus the chat (which finds the Agent by itself).</summary>
-        public static void BuildUi(PanelSettings panelSettings, VisualTreeAsset chatUxml)
+        /// <summary>World-space labels overlay plus the chat (which finds the Agent by itself). Returns the chat object.</summary>
+        public static GameObject BuildUi(PanelSettings panelSettings, VisualTreeAsset chatUxml)
         {
             var overlay = new GameObject("World Overlay");
             var overlayDoc = overlay.AddComponent<UIDocument>();
@@ -156,6 +156,7 @@ namespace Demo.Shared.Editor
             chatDoc.sortingOrder = 10;
             chat.AddComponent<ChatBox>();
             chat.AddComponent<AgentChatBridge>();
+            return chat;
         }
 
         public static void EndScene(Scene scene, string scenePath, GameObject select, string demoName)

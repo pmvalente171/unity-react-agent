@@ -57,6 +57,11 @@ gameplay and UI.
     orders, scores served dishes (the `ServingHatch.Validate` hook refuses dishes nobody ordered), and
     drives the agent: one `agent.Send(prompt, "Kitchen")` per order whenever the agent is idle. The
     agent is driven by game events, not the chat. Planned: pausing game time while the agent is thinking.
+  - `CoopKitchenDemo`: multi-agent. Two cooks (`PrepCook`, `LineCook`, both `CoopCook`), each with its own
+    `Agent` and `ToolSet`, work in separate zones and share a middle zone: a `PassCounter` for handing food
+    over and a `PlanBoard` for notes (`post_note`, `wait_for_partner`). A cook reaches only the stations under
+    its zone's and the middle zone's transforms. `CoopDirector` sends each idle cook its role plus the orders.
+    It reuses KitchenDemo's food and stations unchanged (namespace `Demo.KitchenDemo`); leave KitchenDemo as is.
 - `Agent.Send(text, sender)` raises `MessageSent(text, sender)`; the chat shows every message given to
   the agent (the player's, and game-driven ones like orders) through that event.
 - Prefer the existing ScriptableObject event pattern (`GameEvent` / `EventListener`) for
