@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using AI.Tools;
+using Demo.Shared;
 using UnityEngine;
 
 namespace Demo.CharacterDemo

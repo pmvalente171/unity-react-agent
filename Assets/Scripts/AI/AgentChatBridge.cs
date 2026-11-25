@@ -37,6 +37,7 @@ namespace AI
             }
 
             chatBox.MessageSubmitted += OnSubmitted;
+            agent.MessageSent += OnMessageSent;
             agent.ThoughtReceived += OnThought;
             agent.ActionStarted += OnAction;
             agent.ObservationReceived += OnObservation;
@@ -51,6 +52,7 @@ namespace AI
             if (agent == null || chatBox == null) return;
 
             chatBox.MessageSubmitted -= OnSubmitted;
+            agent.MessageSent -= OnMessageSent;
             agent.ThoughtReceived -= OnThought;
             agent.ActionStarted -= OnAction;
             agent.ObservationReceived -= OnObservation;
@@ -96,9 +98,12 @@ namespace AI
                 return;
             }
 
-            chatBox.AddMessage(text, "You", "chat-message--user");
             _ = agent.Send(text);
         }
+
+        // Every message given to the agent: the player's chat lines and game events (e.g. new orders).
+        private void OnMessageSent(string text, string sender) =>
+            chatBox.AddMessage(text, sender, "chat-message--user");
 
         private void OnThought(string thought)
         {

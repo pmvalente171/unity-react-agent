@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Demo.CharacterDemo
+namespace Demo.Shared
 {
     /// <summary>
     /// Screen-space UI Toolkit labels that follow world objects (place names, speech bubbles).
@@ -13,8 +13,9 @@ namespace Demo.CharacterDemo
     {
         public enum LabelKind
         {
-            Place,
-            Speech,
+            Place,  // place / station names
+            Speech, // speech bubbles
+            Status, // small multi-line info (station state, what's held)
         }
 
         private sealed class Entry
@@ -30,6 +31,9 @@ namespace Demo.CharacterDemo
 
         /// <summary>The active overlay, or null. One per scene is enough.</summary>
         public static WorldOverlay Current { get; private set; }
+
+        /// <summary>Full-screen root that ignores clicks; add fixed HUD panels here (children can be clickable).</summary>
+        public VisualElement Root => _root;
 
         private void OnEnable()
         {
@@ -109,6 +113,14 @@ namespace Demo.CharacterDemo
                 s.fontSize = 18;
                 s.color = new Color(1f, 1f, 1f, 0.9f);
                 s.backgroundColor = new Color(0f, 0f, 0f, 0.45f);
+            }
+            else if (kind == LabelKind.Status)
+            {
+                s.fontSize = 15;
+                s.maxWidth = 240;
+                s.whiteSpace = WhiteSpace.Normal;
+                s.color = new Color(1f, 0.95f, 0.8f);
+                s.backgroundColor = new Color(0.1f, 0.08f, 0.05f, 0.7f);
             }
             else
             {

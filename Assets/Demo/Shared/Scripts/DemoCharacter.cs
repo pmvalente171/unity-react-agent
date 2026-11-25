@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UIElements;
 
-namespace Demo.CharacterDemo
+namespace Demo.Shared
 {
     public enum MoveResult
     {
@@ -15,7 +15,7 @@ namespace Demo.CharacterDemo
 
     /// <summary>
     /// The character's game logic: walking on the NavMesh (a flat floor, so movement stays on the
-    /// XZ plane) and talking. Knows nothing about the agent; <see cref="CharacterTools"/> exposes it.
+    /// XZ plane) and talking. Knows nothing about the agent; each demo exposes it through its own [AgentTool] component.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
     public class DemoCharacter : MonoBehaviour

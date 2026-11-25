@@ -45,11 +45,20 @@ gameplay and UI.
     `EventListener`, `Scriptable*` variables), `Store`. Check here before writing a new helper,
     and put new generic helpers here.
   - `Gameplay/`: game-specific code.
-- Demos live in `Assets/Demo/<DemoName>/` (namespace `Demo.<DemoName>`), self-contained:
-  `Scripts/`, `Editor/` (a scene-builder menu under **Tools → AI**), and `Generated/` assets the
-  builder writes. `CharacterDemo`: a capsule the agent walks around four rooms on a NavMesh
-  (`look_around`, `move_to`, `say`). Rebuild its scene with **Tools → AI → Build Character Demo**
-  rather than hand-editing it.
+- Demos live in `Assets/Demo/<DemoName>/` (namespace `Demo.<DemoName>`): `Scripts/`, `Editor/`
+  (a scene-builder menu under **Tools → AI**), and `Generated/` assets the builder writes.
+  Rebuild demo scenes with their menu rather than hand-editing them. Code used by more than one
+  demo goes in `Assets/Demo/Shared/` (namespace `Demo.Shared`): `DemoCharacter` (NavMesh walking,
+  speech), `WorldOverlay` (labels that follow objects) and `Editor/DemoBuilder` (scene-builder helpers).
+  - `CharacterDemo`: a capsule the agent walks around four rooms (`look_around`, `move_to`, `say`).
+  - `KitchenDemo`: a cooking game. Stations (`Station` subclasses) register themselves; `Hands` holds
+    one item; `KitchenTools` tools walk to their station by themselves (one agent step = one kitchen
+    action). Recipes are data in `Food.cs`. `KitchenDirector` runs the restaurant: it spawns timed
+    orders, scores served dishes (the `ServingHatch.Validate` hook refuses dishes nobody ordered), and
+    drives the agent: one `agent.Send(prompt, "Kitchen")` per order whenever the agent is idle. The
+    agent is driven by game events, not the chat. Planned: pausing game time while the agent is thinking.
+- `Agent.Send(text, sender)` raises `MessageSent(text, sender)`; the chat shows every message given to
+  the agent (the player's, and game-driven ones like orders) through that event.
 - Prefer the existing ScriptableObject event pattern (`GameEvent` / `EventListener`) for
   connecting systems, e.g. letting UI react to agent steps, over direct references.
 - `Singleton<T>` is scene-placed (not created on demand). Subclasses overriding
