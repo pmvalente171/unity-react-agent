@@ -27,12 +27,12 @@ class ModelCard:
     base_url: str | None = None     # set for OpenAI-compatible servers (vLLM, Ollama, ...); ${VAR} allowed
     api_key_env: str | None = None  # name of the env var holding the API key
     headers: dict[str, str] | None = None  # extra HTTP headers; ${VAR} allowed in names and values
-    context_window: int | None = None
-    max_output_tokens: int | None = None
+    context_window: int | None = None     # informational for now
+    max_output_tokens: int | None = None  # informational for now
     supports_native_tools: bool = True
-    supports_parallel_tools: bool = False
+    can_disable_parallel_tools: bool = False  # API accepts parallel_tool_calls=false
     supports_system_role: bool = True
-    emits_reasoning: bool = False   # hidden reasoning that never carries across providers
+    emits_reasoning: bool = False   # informational for now: the model returns hidden reasoning
 
     @property
     def api_key(self) -> str | None:

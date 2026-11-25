@@ -31,9 +31,9 @@ Any other top-level field is ignored, **except `system`, which is rejected with 
 
 | Field         | Type   | Required | Notes |
 |---------------|--------|----------|-------|
-| `name`        | string | yes      | Non-empty, unique. The model calls the tool by this name. |
+| `name`        | string | yes      | Non-empty and unique within `tools` (a duplicate is a 400). The model calls the tool by this name. |
 | `description` | string | no       | Tell the model when to use the tool. |
-| `parameters`  | object | no       | JSON Schema for the arguments. Defaults to `{"type":"object","properties":{}}`. The server checks the model's arguments against it before returning an action. |
+| `parameters`  | object | no       | JSON Schema for the arguments. Defaults to `{"type":"object","properties":{}}` when missing or `null`. Must be a valid JSON Schema (otherwise 400). The server checks the model's arguments against it before returning an action. |
 
 ```json
 {
@@ -54,7 +54,7 @@ Any other top-level field is ignored, **except `system`, which is rejected with 
 | `role`        | Fields | Meaning |
 |---------------|--------|---------|
 | `user`        | `content` (string) | What the player or game asked for. |
-| `assistant`   | `thought` (string), and **either** `action` `{id, tool, args}` **or** `answer` (string) | A previous step the server returned. Send it back exactly as you received it (drop `type`). |
+| `assistant`   | `thought` (string), and **exactly one of** `action` `{id, tool, args}` or `answer` (string). Both or neither is a 400; a `null` field counts as missing. | A previous step the server returned. Send it back exactly as you received it (drop `type`). |
 | `observation` | `action_id` (string, required), `content` (string), `is_error` (bool, optional, default `false`) | The result of running an action. `action_id` must equal the `action.id` it answers. |
 
 Tool results go back as an **`observation`** message, not a `tool` role.
@@ -101,7 +101,7 @@ Every error body has the same shape:
 
 | Status | `code`          | Meaning | What Unity should do |
 |--------|-----------------|---------|----------------------|
-| 400    | `bad_request`   | Malformed request (bad JSON, missing fields, unknown role, `system` sent). | Bug in the client; don't retry. |
+| 400    | `bad_request`   | Malformed request (bad JSON, missing fields, unknown role, `system` sent, duplicate tool name, invalid `parameters` schema, assistant message with both or neither of `action`/`answer`). | Bug in the client; don't retry. |
 | 413    | `context_too_long` | `messages` no longer fits the model's context window. | Trim the oldest turns and retry (see below). |
 | 502    | `llm_error`     | The model provider failed (network, auth, rate limit, timeout). | Retry later or show "agent unavailable". |
 | 502    | `agent_error`   | The model kept giving an invalid step (unknown tool, bad arguments, empty reply). | Retry the same step, or end the task. |
