@@ -27,7 +27,7 @@ session (find it with ListAgents; it runs from the repo root).
 - **Stay stateless.** No sessions or stored history on the server; keep `agent.step(history)` a pure function of its inputs.
 - **Nothing provider-specific outside `llm/`.** The agent and server only see `core/types`.
 - **Capability differences go through the model card**, never `if provider == ...` checks in the agent. Cards live in config because capabilities depend on the deployment, not just the model.
-- **The model and system prompt are server settings only.** The client can't choose them (`system` in a request is rejected with 400).
+- **The model and the base system prompt are server settings only.** The client can add per-agent `instructions`, which the agent appends to the base prompt, but can't replace the prompt or choose the model (`system` in a request is rejected with 400).
 - **Keep the LLM hierarchy flat**: one subclass per provider, registered in `llm/registry.py`.
 
 ## Common changes

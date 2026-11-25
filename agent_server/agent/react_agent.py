@@ -45,7 +45,9 @@ class ReActAgent:
         self.system_prompt = system_prompt
         self.max_retries = max_retries
 
-    def step(self, messages: list[Message], tools: list[ToolSpec]) -> StepResult:
+    def step(self, messages: list[Message], tools: list[ToolSpec], instructions: str = "") -> StepResult:
+        """One ReAct step. `instructions` (e.g. the agent's role) is added after the base
+        system prompt; the client can extend the prompt but never replace it."""
         if not self.llm.card.supports_native_tools:
             # Planned: text-based ReAct (Thought/Action/Action Input) for models
             # without native tool calling, e.g. a vLLM server without a tool parser.
@@ -54,11 +56,13 @@ class ReActAgent:
                 "the text-ReAct fallback is not implemented yet"
             )
 
+        instructions = instructions.strip()
+        system = f"{self.system_prompt}\n\n{instructions}" if instructions else self.system_prompt
         tools_by_name = {t.name: t for t in tools}
         history = list(messages)
         problem = ""
         for attempt in range(1, self.max_retries + 2):
-            reply = self._ensure_unique_ids(self.llm.generate(self.system_prompt, history, tools), history)
+            reply = self._ensure_unique_ids(self.llm.generate(system, history, tools), history)
             result, problem, feedback = self._interpret(reply, tools_by_name)
             if result is not None:
                 return result

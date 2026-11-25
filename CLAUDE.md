@@ -16,9 +16,10 @@ gameplay and UI.
   history plus the tools it can run to `/step` and gets back one action or a final answer.
   Unity runs the tool, appends the returned step (as an `assistant` message, without `type`)
   and then its observation, and calls `/step` again.
-- **The model and the system prompt are server-side settings** (`agent_server/config/models.yaml`).
-  Unity never sends either; a `system` field is rejected with 400. Don't add prompt or model
-  fields on the Unity side.
+- **The model and the base system prompt are server-side settings** (`agent_server/config/models.yaml`,
+  `agent_server/agent/react_agent.py`).
+  Unity can send optional per-agent `instructions` (`Agent.instructions`, e.g. a role), which the
+  server appends to its prompt; it never sends a `system` field (rejected with 400) or picks the model.
 - **Connection:** the server listens on port 5000 by default (`PORT` env var; the Docker image
   exposes 5000). `GET /health` returns `{"status":"ok","model":...}`. Keep the backend base URL
   configurable (a ScriptableObject or serialized field), never hard-coded, and use `/health` to

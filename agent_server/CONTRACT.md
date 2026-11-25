@@ -4,8 +4,9 @@ The server holds no state. **Unity owns the ReAct loop and the history.** On eve
 step Unity sends the full history plus the tools it can execute, and the server
 returns exactly one next step: an action (one tool call) or a final answer.
 
-The model is chosen on the server (`config/models.yaml`). The client cannot pick
-the model or change the system prompt.
+The model and the base system prompt are set on the server. The client can add
+per-agent `instructions` (such as the agent's role), but it cannot replace the base
+prompt or pick the model.
 
 ## Endpoints
 
@@ -20,12 +21,20 @@ the model or change the system prompt.
 
 ```json
 {
+  "instructions": "You are the line cook. ...",
   "tools": [ToolSpec, ...],
   "messages": [Message, ...]
 }
 ```
 
+| Field          | Type   | Required | Notes |
+|----------------|--------|----------|-------|
+| `instructions` | string | no       | Per-agent instructions, e.g. its role. The server adds them after its own system prompt (base prompt, a blank line, then `instructions`), so the ReAct format rules stay in place. Missing, `null` or empty means none. Any other type is a 400. |
+| `tools`        | list   | no       | The tools Unity can run this step (see ToolSpec). |
+| `messages`     | list   | yes      | The history so far (see Message). |
+
 Any other top-level field is ignored, **except `system`, which is rejected with 400.**
+Send the same `instructions` on every step of a conversation: the server keeps no state.
 
 ### ToolSpec
 
@@ -101,7 +110,7 @@ Every error body has the same shape:
 
 | Status | `code`          | Meaning | What Unity should do |
 |--------|-----------------|---------|----------------------|
-| 400    | `bad_request`   | Malformed request (bad JSON, missing fields, unknown role, `system` sent, duplicate tool name, invalid `parameters` schema, assistant message with both or neither of `action`/`answer`). | Bug in the client; don't retry. |
+| 400    | `bad_request`   | Malformed request (bad JSON, missing fields, unknown role, `system` sent, non-string `instructions`, duplicate tool name, invalid `parameters` schema, assistant message with both or neither of `action`/`answer`). | Bug in the client; don't retry. |
 | 413    | `context_too_long` | `messages` no longer fits the model's context window. | Trim the oldest turns and retry (see below). |
 | 502    | `llm_error`     | The model provider failed (network, auth, rate limit, timeout). | Retry later or show "agent unavailable". |
 | 502    | `agent_error`   | The model kept giving an invalid step (unknown tool, bad arguments, empty reply). | Retry the same step, or end the task. |

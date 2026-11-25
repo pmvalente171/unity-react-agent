@@ -136,6 +136,12 @@ def create_app(agent: ReActAgent) -> Flask:
         if "system" in body:
             return error(400, "bad_request", "'system' is not accepted; the system prompt is set on the server")
 
+        instructions = body.get("instructions")
+        if instructions is None:
+            instructions = ""
+        elif not isinstance(instructions, str):
+            return error(400, "bad_request", "'instructions' must be a string")
+
         try:
             messages = parse_messages(body.get("messages"))
             tools = parse_tools(body.get("tools"))
@@ -144,7 +150,7 @@ def create_app(agent: ReActAgent) -> Flask:
 
         started = time.perf_counter()
         try:
-            result = agent.step(messages, tools)
+            result = agent.step(messages, tools, instructions)
         except ContextTooLongError as e:
             return error(413, "context_too_long", f"history does not fit the model's context window: {e}")
         except LLMError as e:
