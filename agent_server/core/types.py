@@ -7,7 +7,7 @@ subclass translates these types to and from its own wire format.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,7 @@ class ObservationMessage:
     role: Literal["observation"] = "observation"
 
 
-Message = Union[UserMessage, AssistantMessage, ObservationMessage]
+Message = UserMessage | AssistantMessage | ObservationMessage
 
 
 @dataclass(frozen=True)

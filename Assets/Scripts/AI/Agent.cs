@@ -32,6 +32,8 @@ namespace AI
         public AgentState State { get; private set; } = AgentState.Idle;
         public bool IsBusy => State != AgentState.Idle;
 
+        /// <summary>A message was given to the agent: (text, sender), e.g. a player's chat line or a game event.</summary>
+        public event Action<string, string> MessageSent;
         public event Action<string> ThoughtReceived;
         public event Action<ActionCall> ActionStarted;
         public event Action<ActionCall, ToolResult> ObservationReceived;
@@ -40,8 +42,11 @@ namespace AI
         public event Action Cancelled;
         public event Action<AgentState> StateChanged;
 
-        /// <summary>Adds a user message and runs the loop until a final answer, an error or a stop.</summary>
-        public async Awaitable Send(string userMessage)
+        /// <summary>
+        /// Adds a user message and runs the loop until a final answer, an error or a stop.
+        /// <paramref name="sender"/> only labels it for listeners (e.g. the chat); the model just sees the text.
+        /// </summary>
+        public async Awaitable Send(string userMessage, string sender = "You")
         {
             if (IsBusy)
             {
@@ -50,6 +55,7 @@ namespace AI
             }
 
             _history.Add(Message.User(userMessage));
+            MessageSent?.Invoke(userMessage, sender);
             _cts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             var ct = _cts.Token;
 

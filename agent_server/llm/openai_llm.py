@@ -48,7 +48,7 @@ class OpenAILLM(LLM):
         }
         if tools and self.card.supports_native_tools:
             kwargs["tools"] = self.to_provider_tools(tools)
-            if self.card.supports_parallel_tools:
+            if self.card.can_disable_parallel_tools:
                 kwargs["parallel_tool_calls"] = False  # one action per ReAct step
 
         try:

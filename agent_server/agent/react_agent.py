@@ -7,6 +7,7 @@ either an action (one tool call) or a final answer.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import replace
 
@@ -23,6 +24,8 @@ from core.types import (
     UserMessage,
 )
 from llm.base import LLM
+
+log = logging.getLogger(__name__)
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are an agent acting inside a game world. Work step by step. "
@@ -54,11 +57,12 @@ class ReActAgent:
         tools_by_name = {t.name: t for t in tools}
         history = list(messages)
         problem = ""
-        for _ in range(self.max_retries + 1):
+        for attempt in range(1, self.max_retries + 2):
             reply = self._ensure_unique_ids(self.llm.generate(self.system_prompt, history, tools), history)
             result, problem, feedback = self._interpret(reply, tools_by_name)
             if result is not None:
                 return result
+            log.warning("model reply rejected (attempt %d): %s", attempt, problem)
             # Show the model its mistake and let it try again. This correction
             # only lives for this request; Unity's history is not changed.
             history.extend(feedback)
@@ -117,7 +121,5 @@ class ReActAgent:
             jsonschema.validate(call.args, spec.parameters)
         except jsonschema.ValidationError as e:
             return f"invalid arguments for {call.tool!r}: {e.message}."
-        except jsonschema.SchemaError:
-            pass  # the client sent a broken schema; don't blame the model for it
-        return None
+        return None  # tool schemas are checked when the request is parsed (server.parse_tools)
 

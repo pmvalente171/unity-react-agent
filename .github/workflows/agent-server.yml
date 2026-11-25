@@ -1,0 +1,24 @@
+name: agent_server
+
+on:
+  push:
+    paths: ["agent_server/**", ".github/workflows/agent-server.yml"]
+  pull_request:
+    paths: ["agent_server/**", ".github/workflows/agent-server.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent_server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: agent_server/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: python -m pytest -q tests

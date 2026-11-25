@@ -8,7 +8,7 @@ from llm.base import LLMError
 from llm.model_card import ModelCard
 from llm.openai_llm import OpenAILLM
 
-CARD = ModelCard(name="gpt", provider="openai", model_id="gpt-x", supports_parallel_tools=True)
+CARD = ModelCard(name="gpt", provider="openai", model_id="gpt-x", can_disable_parallel_tools=True)
 HISTORY = [
     UserMessage("Go to the kitchen"),
     AssistantMessage(thought="Walking.", action=ToolCall("call_1", "move_to", {"place": "kitchen"})),
@@ -69,7 +69,7 @@ def test_generate_sends_tools_and_parses_reply():
 
 
 def test_parallel_flag_not_sent_when_model_lacks_it():
-    card = ModelCard(name="m", provider="openai", model_id="m", supports_parallel_tools=False)
+    card = ModelCard(name="m", provider="openai", model_id="m", can_disable_parallel_tools=False)
     client = FakeClient(SimpleNamespace(content="ok", tool_calls=None))
     OpenAILLM(card, client=client).generate("SYS", HISTORY[:1], TOOLS)
     assert "parallel_tool_calls" not in client.kwargs
