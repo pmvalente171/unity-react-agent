@@ -37,7 +37,9 @@ gameplay and UI.
 - Scripts live in `Assets/Scripts/`:
   - `AI/`: namespace `AI`. `Connector` (a static class, no scene object) talks to the backend;
     its address comes from an optional `AgentServerSettings` asset in `Resources/`
-    (default `http://localhost:5000`).
+    (default `http://localhost:5000`). `Assets/Resources/AgentServerSettings.asset` is gitignored
+    (local, may hold a private host). Never put API keys or the lab/vLLM host in it: Resources
+    ship inside builds. Those stay in `agent_server/.env`.
   - `GameArchitecture/`: namespace `GameArchitecture`. Reusable building blocks: `Singleton<T>`,
     `Optional<T>`, `CoroutineHandle`, `ObjectPool`, ScriptableObject patterns (`GameEvent`,
     `EventListener`, `Scriptable*` variables), `Store`. Check here before writing a new helper,
