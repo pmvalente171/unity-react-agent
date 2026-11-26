@@ -39,6 +39,9 @@ rather than code. To find out what a deployment supports, run:
 
 It connects with the same card and `.env` as the server and reports what worked.
 
+For a step-by-step walkthrough of adding a model or a provider, see
+[docs/adding-models.md](../docs/adding-models.md).
+
 ### Environment variables
 
 | Variable | Default | Purpose |
