@@ -25,10 +25,21 @@ namespace AI
         [SerializeField] private ToolSet toolSet;
         [SerializeField, Min(1)] private int maxSteps = 10;
 
+        [SerializeField, TextArea(3, 10), Tooltip("Optional. Added to the server's system prompt for this agent (its role, rules, " +
+                                                    "tone). Leave empty to use the server's prompt alone.")]
+        private string instructions;
+
         private readonly List<Message> _history = new();
         private CancellationTokenSource _cts;
 
         public IReadOnlyList<Message> History => _history;
+
+        /// <summary>This agent's extra instructions for the system prompt (empty = none). Applies from the next step.</summary>
+        public string Instructions
+        {
+            get => instructions;
+            set => instructions = value;
+        }
         public AgentState State { get; private set; } = AgentState.Idle;
         public bool IsBusy => State != AgentState.Idle;
 
@@ -143,8 +154,9 @@ namespace AI
             {
                 var request = new StepRequest
                 {
-                    Tools = toolSet != null ? toolSet.ToSpecs() : new List<ToolSpec>(),
+                    Tools = toolSet is not null ? toolSet.ToSpecs() : new List<ToolSpec>(),
                     Messages = _history,
+                    Instructions = string.IsNullOrWhiteSpace(instructions) ? null : instructions,
                 };
 
                 try
@@ -160,7 +172,7 @@ namespace AI
 
         private async Awaitable<ToolResult> RunTool(ActionCall action, CancellationToken ct)
         {
-            if (toolSet == null || !toolSet.TryGet(action.Tool, out var tool))
+            if (toolSet is null || !toolSet.TryGet(action.Tool, out var tool))
                 return ToolResult.Fail($"Tool '{action.Tool}' is not available right now.");
 
             try

@@ -174,3 +174,19 @@ def test_step_is_logged(client_for, caplog):
     with caplog.at_level("INFO", logger="agent_server"):
         c.post("/step", json=REQUEST)
     assert "step action move_to" in caplog.text
+
+
+def test_instructions_are_appended_to_the_system_prompt(fake_llm_factory):
+    llm = fake_llm_factory(["Done.", "Done."])
+    agent = ReActAgent(llm, system_prompt="BASE")
+    c = server.create_app(agent).test_client()
+    assert c.post("/step", json={**REQUEST, "instructions": "  You are the line cook. "}).status_code == 200
+    assert llm.calls[0]["system"] == "BASE\n\nYou are the line cook."
+    assert c.post("/step", json={**REQUEST, "instructions": None}).status_code == 200
+    assert llm.calls[1]["system"] == "BASE"
+
+
+@pytest.mark.parametrize("value", [5, False, ["a"], {"role": "x"}])
+def test_non_string_instructions_are_rejected(client_for, value):
+    r = client_for().post("/step", json={**REQUEST, "instructions": value})
+    assert r.status_code == 400 and "instructions" in r.get_json()["error"]

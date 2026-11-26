@@ -78,6 +78,9 @@ namespace AI.Contract
     {
         [JsonProperty("tools")] public List<ToolSpec> Tools;
         [JsonProperty("messages")] public List<Message> Messages;
+
+        // Optional per-agent instructions, added to the server's own system prompt. Null = not sent.
+        [JsonProperty("instructions", NullValueHandling = NullValueHandling.Ignore)] public string Instructions;
     }
 
     public class StepResponse
