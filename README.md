@@ -14,7 +14,7 @@ it**:
 
 ```
             ╭─POST /step (history + tools)──▶
-Unity game ─╯                                  ╭─agent_server  ──▶  LLM (OpenAI, vLLM, ...)
+Unity game ─╯                                 ╭─agent_server  ──▶  LLM (OpenAI, vLLM, ...)
            ◀────── one action or final ───────╯
 ```
 
