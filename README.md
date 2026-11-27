@@ -1,8 +1,8 @@
-# AI Transparency (prototype)
+# ReAct for Unity - A Unity-esque Solution.
 
-A Unity prototype where an LLM agent acts inside the game world and the player can watch it
-think. It's a shelved example project: the point of interest is the **Unity-centred way of
-building ReAct agents**, not any one game.
+The overall goal for this project is to build a strong foundation for build lightweight 
+research applications that include Unity and LLMs. We aim to support native tool calling
+across all Monobehavior(s) and a quick and intuitive setup for building multi-agent setups.
 
 ## The idea: Unity runs the agent
 
@@ -13,8 +13,9 @@ Most agent frameworks run that loop on a server, next to the model. Here **the g
 it**:
 
 ```
-Unity game  ──POST /step (history + tools)──▶  agent_server  ──▶  LLM (OpenAI, vLLM, ...)
-            ◀──────── one action or final ────
+            ╭─POST /step (history + tools)──▶
+Unity game ─╯                                  ╭─agent_server  ──▶  LLM (OpenAI, vLLM, ...)
+           ◀────── one action or final ───────╯
 ```
 
 - **Tools are ordinary C# methods** on your MonoBehaviours. They run on the main thread, can
